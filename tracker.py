@@ -11,6 +11,8 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 REFRESH_SECONDS = 60
+NATIVE_BUS_NAME = "io.github.saschb2b.BtcUsdTracker.Popover"
+FALLBACK_BUS_NAME = "io.github.saschb2b.BtcUsdTracker.Fallback"
 FEEDS = (
     ("Coinbase", "https://api.coinbase.com/v2/prices/BTC-USD/spot"),
     ("Kraken", "https://api.kraken.com/0/public/Ticker?pair=XBTUSD"),
@@ -43,7 +45,7 @@ def fetch_price():
     for source, url in FEEDS:
         try:
             request = urllib.request.Request(
-                url, headers={"User-Agent": "BTC-USD-Tracker/1.0", "Accept": "application/json"}
+                url, headers={"User-Agent": "BTC-USD-Tracker/1.1", "Accept": "application/json"}
             )
             with urllib.request.urlopen(request, timeout=12) as response:
                 payload = json.loads(response.read(65536))
@@ -64,7 +66,7 @@ def run():
 
     gi.require_version("Gtk", "3.0")
     gi.require_version("AyatanaAppIndicator3", "0.1")
-    from gi.repository import AyatanaAppIndicator3, GLib, Gtk
+    from gi.repository import AyatanaAppIndicator3, Gio, GLib, Gtk
 
     try:
         from gi.repository import GLibUnix
@@ -79,6 +81,7 @@ def run():
             self.price = None
             self.busy = False
             self.closed = False
+            self.native_present = False
             self.indicator = AyatanaAppIndicator3.Indicator.new(
                 "btc-usd-tracker",
                 str(Path(__file__).with_name("bitcoin-symbolic.svg")),
@@ -101,8 +104,33 @@ def run():
             self.menu.show_all()
             self.indicator.set_menu(self.menu)
             self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
+            self.native_watch = Gio.bus_watch_name(
+                Gio.BusType.SESSION, NATIVE_BUS_NAME, Gio.BusNameWatcherFlags.NONE,
+                lambda *_: self.set_native_present(True),
+                lambda *_: self.set_native_present(False),
+            )
+            self.fallback_name = Gio.bus_own_name(
+                Gio.BusType.SESSION, FALLBACK_BUS_NAME, Gio.BusNameOwnerFlags.NONE,
+                None, None, None,
+            )
             self.timer = GLib.timeout_add_seconds(REFRESH_SECONDS, self.refresh)
             self.refresh()
+
+        def set_native_present(self, present):
+            if self.closed or self.native_present == present:
+                return
+            self.native_present = present
+            if not present:
+                self.indicator.set_label(panel_label(self.price, stale=self.price is not None), "$000,000 *")
+                self.status_row.set_label("Fetching a fresh price…")
+            status = (AyatanaAppIndicator3.IndicatorStatus.PASSIVE if present
+                      else AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
+            self.indicator.set_status(status)
+            logging.info("Native popover %s; fallback %s",
+                         "available" if present else "unavailable",
+                         "hidden" if present else "visible")
+            if not present:
+                self.refresh()
 
         def info(self, text):
             item = Gtk.MenuItem(label=text)
@@ -113,7 +141,7 @@ def run():
         def refresh(self):
             if self.closed:
                 return GLib.SOURCE_REMOVE
-            if not self.busy:
+            if not self.busy and not self.native_present:
                 self.busy = True
                 self.refresh_row.set_sensitive(False)
                 threading.Thread(target=self.worker, daemon=True).start()
@@ -147,6 +175,8 @@ def run():
 
         def quit(self):
             self.closed = True
+            Gio.bus_unwatch_name(self.native_watch)
+            Gio.bus_unown_name(self.fallback_name)
             GLib.source_remove(self.timer)
             self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.PASSIVE)
             Gtk.main_quit()

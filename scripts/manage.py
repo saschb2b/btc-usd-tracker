@@ -10,6 +10,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 SERVICE = "btc-usd-tracker.service"
+EXTENSION_UUID = "btc-usd-tracker@saschb2b.github.io"
+EXTENSION_FILES = ("metadata.json", "extension.js", "client.js", "data.js", "stylesheet.css")
+ARTWORK_FILES = ("bitcoin-symbolic.svg", "LICENSE", "LICENSE.bitcoin-icons", "NOTICE.md")
 APP_FILES = (
     "tracker.py", "bitcoin-symbolic.svg", "LICENSE", "LICENSE.bitcoin-icons", "README.md", "NOTICE.md",
 )
@@ -55,7 +58,39 @@ def systemd_argument(path):
     return f'"{value}"'
 
 
-def install(no_start=False):
+def extension_path():
+    app_dir, _ = install_paths()
+    return app_dir.parent / "gnome-shell/extensions" / EXTENSION_UUID
+
+
+def set_extension_enabled(enabled):
+    from gi.repository import Gio
+
+    settings = Gio.Settings.new("org.gnome.shell")
+    extensions = [item for item in settings.get_strv("enabled-extensions") if item != EXTENSION_UUID]
+    if enabled:
+        extensions.append(EXTENSION_UUID)
+        disabled = [item for item in settings.get_strv("disabled-extensions") if item != EXTENSION_UUID]
+        settings.set_strv("disabled-extensions", disabled)
+    settings.set_strv("enabled-extensions", extensions)
+    Gio.Settings.sync()
+
+
+def install_extension(enable):
+    destination = extension_path()
+    destination.mkdir(parents=True, exist_ok=True)
+    for name in EXTENSION_FILES:
+        shutil.copy2(ROOT / "extension" / name, destination / name)
+    for name in ARTWORK_FILES:
+        shutil.copy2(ROOT / name, destination / name)
+    if enable:
+        set_extension_enabled(True)
+    print(f"Installed GNOME popover to {destination}")
+    print("A new or updated local extension needs logout/login to load its code.")
+    print("The simple indicator stays available until the popover is running.")
+
+
+def install(no_start=False, with_popover=False):
     check_dependencies()
     app_dir, unit_path = install_paths()
     template = (ROOT / "packaging" / f"{SERVICE}.in").read_text()
@@ -70,6 +105,8 @@ def install(no_start=False):
     if not no_start:
         # restart also starts an inactive service and applies upgrades immediately.
         systemctl("restart", SERVICE)
+    if with_popover or extension_path().exists():
+        install_extension(enable=with_popover and not no_start)
     print(f"Installed to {app_dir}")
     print("Automatic startup enabled for graphical desktop sessions.")
     if no_start:
@@ -81,10 +118,20 @@ def install(no_start=False):
 
 def uninstall():
     app_dir, unit_path = install_paths()
-    if not unit_path.exists() and not app_dir.exists():
+    extension_dir = extension_path()
+    if not unit_path.exists() and not app_dir.exists() and not extension_dir.exists():
         print("The tracker is not installed.")
         return
-    systemctl("disable", "--now", SERVICE)
+    if unit_path.exists():
+        systemctl("disable", "--now", SERVICE)
+    if extension_dir.exists():
+        set_extension_enabled(False)
+        for filename in EXTENSION_FILES + ARTWORK_FILES:
+            (extension_dir / filename).unlink(missing_ok=True)
+        try:
+            extension_dir.rmdir()
+        except OSError:
+            print(f"Kept additional files in {extension_dir}")
     unit_path.unlink(missing_ok=True)
     # Remove only files this installer owns; leave unrelated files in place.
     for filename in APP_FILES:
@@ -103,13 +150,14 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     installer = commands.add_parser("install", help="Install or upgrade the tracker")
     installer.add_argument("--no-start", action="store_true", help="Enable startup but do not start now")
+    installer.add_argument("--with-popover", action="store_true", help="Also install the GNOME 50 popover")
     commands.add_parser("uninstall", help="Stop and remove the tracker")
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error("Run this as your normal desktop user, without sudo")
     try:
         if args.command == "install":
-            install(args.no_start)
+            install(args.no_start, args.with_popover)
         else:
             uninstall()
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:

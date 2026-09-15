@@ -1,0 +1,28 @@
+.btc-panel { spacing: 5px; }
+.btc-content { width: 390px; spacing: 10px; padding: 8px 18px; }
+.btc-heading { spacing: 12px; padding-bottom: 3px; }
+.btc-title { font-weight: bold; font-size: 1.1em; }
+.btc-muted { font-size: 0.85em; }
+.btc-tabs, .btc-ranges { spacing: 6px; }
+.btc-control { border-radius: 8px; padding: 8px 16px; background-color: rgba(128,128,128,0.12); }
+.btc-control:hover { background-color: rgba(128,128,128,0.24); }
+.btc-control:checked { background-color: rgba(128,128,128,0.32); font-weight: bold; }
+.btc-control:focus { box-shadow: inset 0 0 0 2px #f7931a; }
+.btc-page { spacing: 10px; }
+.btc-price { font-size: 2.15em; font-weight: bold; }
+.btc-positive { color: #2aa766; }
+.btc-negative { color: #e36565; }
+.btc-chart-row { spacing: 8px; }
+.btc-chart { height: 135px; min-width: 240px; }
+.btc-axis { padding: 8px 0; }
+.btc-inspect { padding: 3px 0; }
+.btc-stats { spacing: 20px; padding-top: 8px; border-top: 1px solid rgba(128,128,128,0.24); }
+.btc-metric { spacing: 4px; }
+.btc-metric-value { font-size: 1.05em; }
+.btc-fees { spacing: 12px; padding: 12px 0; }
+.btc-fees .btc-metric { padding: 10px; border-radius: 8px; background-color: rgba(128,128,128,0.12); }
+.btc-queue { height: 125px; spacing: 12px; }
+.btc-block { spacing: 6px; }
+.btc-block-value { font-size: 0.9em; }
+.btc-bar { background-color: #f7931a; border-radius: 3px 3px 0 0; }
+.btc-footer { padding-top: 10px; border-top: 1px solid rgba(128,128,128,0.24); font-size: 0.8em; }

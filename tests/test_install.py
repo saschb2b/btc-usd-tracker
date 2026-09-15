@@ -26,6 +26,9 @@ class InstallerTests(unittest.TestCase):
         dependencies = patch.object(manage, "check_dependencies")
         dependencies.start()
         self.addCleanup(dependencies.stop)
+        extension_settings = patch.object(manage, "set_extension_enabled")
+        self.extension_settings = extension_settings.start()
+        self.addCleanup(extension_settings.stop)
         output = contextlib.redirect_stdout(io.StringIO())
         output.__enter__()
         self.addCleanup(output.__exit__, None, None, None)
@@ -84,6 +87,33 @@ class InstallerTests(unittest.TestCase):
     def test_newline_path_is_rejected(self):
         with self.assertRaises(ValueError):
             manage.systemd_argument("/tmp/bad\npath")
+
+    def test_popover_installs_with_fallback_and_preserves_other_files(self):
+        manage.install(with_popover=True)
+        self.extension_settings.assert_called_once_with(True)
+        path = manage.extension_path()
+        for name in manage.EXTENSION_FILES:
+            self.assertEqual((path / name).read_bytes(), (manage.ROOT / "extension" / name).read_bytes())
+        self.assertEqual((path / "bitcoin-symbolic.svg").read_bytes(), (manage.ROOT / "bitcoin-symbolic.svg").read_bytes())
+        (path / "user-notes").write_text("keep")
+        manage.uninstall()
+        self.extension_settings.assert_called_with(False)
+        self.assertEqual((path / "user-notes").read_text(), "keep")
+        self.assertFalse((path / "extension.js").exists())
+
+    def test_updating_existing_popover_does_not_reenable_it(self):
+        manage.install(with_popover=True)
+        self.extension_settings.reset_mock()
+        (manage.extension_path() / "extension.js").write_text("old")
+        manage.install()
+        self.extension_settings.assert_not_called()
+        self.assertEqual((manage.extension_path() / "extension.js").read_bytes(),
+                         (manage.ROOT / "extension/extension.js").read_bytes())
+
+    def test_no_start_does_not_activate_popover(self):
+        manage.install(no_start=True, with_popover=True)
+        self.assertTrue(manage.extension_path().exists())
+        self.extension_settings.assert_not_called()
 
 
 if __name__ == "__main__":

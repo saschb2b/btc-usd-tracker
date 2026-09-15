@@ -1,0 +1,9 @@
+{
+  "uuid": "btc-usd-tracker@saschb2b.github.io",
+  "name": "BTC/USD Tracker",
+  "description": "Bitcoin price history and network fees in a two-tab popover, with an optional standalone indicator fallback.",
+  "shell-version": ["50"],
+  "url": "https://github.com/saschb2b/btc-usd-tracker",
+  "version": 2,
+  "version-name": "1.1.0"
+}
