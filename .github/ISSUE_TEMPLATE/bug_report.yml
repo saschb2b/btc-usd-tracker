@@ -1,0 +1,23 @@
+name: Bug report
+description: Report a problem with the indicator or installer
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include what you expected and the steps needed to reproduce it.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Desktop environment
+      placeholder: Ubuntu 26.04, GNOME 50, Wayland
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Run journalctl --user -u btc-usd-tracker.service -n 20 and remove any personal information before posting.
+      render: text

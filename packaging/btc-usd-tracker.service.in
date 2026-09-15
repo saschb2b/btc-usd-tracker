@@ -1,0 +1,16 @@
+[Unit]
+Description=Bitcoin USD top-bar price tracker
+Documentation=https://github.com/saschb2b/btc-usd-tracker
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 @TRACKER_PATH@
+Environment=GDK_BACKEND=wayland,x11
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=5
+
+[Install]
+WantedBy=graphical-session.target
