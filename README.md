@@ -11,6 +11,14 @@ BTC/USD price. A small standalone indicator runs alongside it and automatically
 takes over when the popover is disabled or unavailable. Works on Wayland, starts
 at login, and needs no account or API key.
 
+![BTC/USD Tracker on the desktop: a live price in the GNOME top bar and the Market popover open over a plum and orange presentation backdrop](docs/desktop.png)
+
+*The real tracker running on GNOME 50 and Wayland, captured with a presentation
+backdrop. The panel, community Bitcoin icon, and open popover are the actual UI.*
+
+<details>
+<summary>Explore the Market and Network tabs up close</summary>
+
 | Market | Network |
 | --- | --- |
 | ![Market tab with BTC/USD price, a 24-hour chart and statistics](docs/market.png) | ![Network tab with fee estimates, projected blocks and transaction counts](docs/network.png) |
@@ -18,6 +26,8 @@ at login, and needs no account or API key.
 *Actual screenshots from an isolated GNOME 50 Wayland session. Prices and network
 conditions change. The top-bar Bitcoin icon is unchanged
 [Bitcoin Design Community artwork](NOTICE.md).*
+
+</details>
 
 ## Features
 
@@ -55,6 +65,11 @@ visible ticker. The fallback requires working AppIndicator support.
 The fallback has a simple price menu with source, update time, **Refresh now**, and
 **Quit until next login**. Its quotes use Coinbase first, then Kraken. Charts and
 network data belong to the native popover.
+
+![Desktop illustration of the simple Bitcoin price indicator and its compact menu](docs/preview.svg)
+
+*The original desktop illustration, showing simple-indicator mode with sample
+prices and the same [Bitcoin Design Community artwork](NOTICE.md).*
 
 ## Quick start
 
