@@ -66,7 +66,7 @@ export async function run() {
     ext._selectTab('network');
     await until(() => ext._slots.network?.data, 'live network data');
     await Scripting.sleep(500);
-    print(`Network: ${ext._networkDetail.text}`);
+    print(`Network: block ${ext._height.value.text}; ${ext._waiting.value.text} waiting`);
     await screenshot('network');
     ext._selectTab('market');
     for (const range of ['1h', '7d']) {

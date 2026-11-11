@@ -3,6 +3,9 @@
 ## Unreleased
 
 - **Use full popover** in the simple indicator's menu switches back to the native popover.
+- Redesigned popover: segmented tabs and range switcher, a change badge beside the price,
+  a gradient chart with a pointer crosshair and real time labels, a low/high range bar,
+  equal-width statistics, mempool-style projected blocks, and a header refresh button.
 
 ## 1.1.0 — 2026-09-15
 

@@ -1,9 +1,9 @@
 // Pure data validation and formatting: usable in GJS without GNOME Shell.
 export const BUS_NAME = 'io.github.saschb2b.BtcUsdTracker.Popover';
 export const RANGES = {
-    '1h': {seconds: 3600, interval: 1, label: '1 hour ago'},
-    '24h': {seconds: 86400, interval: 15, label: '24 hours ago'},
-    '7d': {seconds: 604800, interval: 60, label: '7 days ago'},
+    '1h': {seconds: 3600, interval: 1, title: 'Past hour'},
+    '24h': {seconds: 86400, interval: 15, title: 'Past 24 hours'},
+    '7d': {seconds: 604800, interval: 60, title: 'Past 7 days'},
 };
 
 export function number(value, minimum = 0) {
@@ -97,8 +97,8 @@ export function stale(slot, now = Date.now() / 1000) {
     return !slot?.updated || Boolean(slot.error) || now - slot.updated > 150;
 }
 
-export function chartCoordinates(points, width, height, padding = 8) {
-    if (points.length < 2 || width <= 2 * padding || height <= 2 * padding)
+export function chartCoordinates(points, width, height, padding = 8, inset = padding) {
+    if (points.length < 2 || width <= 2 * inset || height <= 2 * padding)
         return [];
     const values = points.map(point => point.value);
     const low = Math.min(...values), high = Math.max(...values);
@@ -107,7 +107,51 @@ export function chartCoordinates(points, width, height, padding = 8) {
     if (last <= first)
         return [];
     return points.map(point => ({
-        x: padding + (point.time - first) / (last - first) * (width - 2 * padding),
+        x: inset + (point.time - first) / (last - first) * (width - 2 * inset),
         y: padding + (high - point.value + span * 0.1) / (span * 1.2) * (height - 2 * padding),
     }));
+}
+
+// Vertical positions of the plotted high and low, matching chartCoordinates().
+export function chartBounds(height, padding = 8) {
+    const inner = height - 2 * padding;
+    return {high: padding + inner * 0.1 / 1.2, low: padding + inner * 1.1 / 1.2};
+}
+
+export function changeLabel(change) {
+    const rounded = Number(change.toFixed(2));
+    return `${rounded > 0 ? '▲' : rounded < 0 ? '▼' : '•'} ${Math.abs(rounded).toFixed(2)}%`;
+}
+
+// Where a price sits between a period's low and high, clamped to 0…1.
+export function rangePosition(price, low, high) {
+    if (!(high > low) || !Number.isFinite(price))
+        return 0.5;
+    return Math.max(0, Math.min(1, (price - low) / (high - low)));
+}
+
+const TIME = {hour: '2-digit', minute: '2-digit'};
+const FORMATS = {
+    '1h': [TIME, TIME],
+    '24h': [{weekday: 'short', ...TIME}, {weekday: 'short', ...TIME}],
+    '7d': [{month: 'short', day: 'numeric'}, {month: 'short', day: 'numeric', ...TIME}],
+};
+
+// Axis labels are short; `detailed` is for the value under the pointer.
+export function timeLabel(timestamp, range, detailed = false, locale = []) {
+    const format = FORMATS[range] ?? FORMATS['24h'];
+    return new Date(timestamp * 1000).toLocaleString(locale, format[detailed ? 1 : 0]);
+}
+
+export function nearestPoint(points, fraction) {
+    if (!points.length)
+        return null;
+    const time = points[0].time + fraction * (points.at(-1).time - points[0].time);
+    return points.reduce((nearest, candidate) =>
+        Math.abs(candidate.time - time) < Math.abs(nearest.time - time) ? candidate : nearest);
+}
+
+// Sub-10 fee rates keep two decimals so a quiet mempool does not read as zero.
+export function feeLabel(value) {
+    return value.toLocaleString('en-US', {maximumFractionDigits: value < 10 ? 2 : value < 100 ? 1 : 0});
 }

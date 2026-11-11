@@ -49,7 +49,7 @@ the deterministic unit tests in CI.
 
 1. Run `./install.sh --with-popover` as your normal desktop user.
 2. Verify the simple indicator is visible, then log out/in to load the extension.
-3. Try both tabs, all ranges, chart hover, keyboard focus, and **Refresh now**.
+3. Try both tabs, all ranges, chart hover, keyboard focus, and the refresh button.
 4. Choose **Use simple indicator**, verify its price menu, then restore the native
    extension with `gnome-extensions enable btc-usd-tracker@saschb2b.github.io`.
 5. Check startup after a new login, and test updates/uninstall if changing the installer.

@@ -121,7 +121,8 @@ then enable the UUID below. This does **not** install the automatic fallback.
 ## Using it
 
 Click the top-bar price, choose **Market** or **Network**, and select a chart range.
-**Refresh now** updates the quote and visible tab. Quotes refresh every 60 seconds;
+Move across the chart to read the time and price of any candle. The refresh button
+in the header updates the quote and visible tab. Quotes refresh every 60 seconds;
 additional datasets refresh while their tab is open. Each dataset keeps its own
 update time. Cached data is kept in memory for the current session.
 
@@ -206,7 +207,7 @@ while the popover is running. If neither is visible, check AppIndicator support
 and the extension status. The service journal reports fallback visibility changes.
 
 **A chart or network tab is unavailable.** The datasets use different providers.
-Check the source and stale message in that tab, then try **Refresh now**. A
+Check the source and stale message in that tab, then try the refresh button. A
 Coinbase backup quote can still work when Kraken history is unavailable; Kraken
 volume then shows as unavailable.
 

@@ -1,6 +1,6 @@
 import {
     number, parseTicker, parseCoinbase, parseHistory, parseNetwork,
-    chartCoordinates, stale, priceLabel,
+    chartCoordinates, chartBounds, changeLabel, rangePosition, timeLabel, nearestPoint, feeLabel, stale, priceLabel,
 } from '../extension/data.js';
 
 let passed = 0;
@@ -46,6 +46,19 @@ const coordinates = chartCoordinates(history.points, 300, 135);
 check(coordinates.every(point => Number.isFinite(point.x) && Number.isFinite(point.y) && point.x >= 8 && point.x <= 292 && point.y >= 8 && point.y <= 127), 'chart stays within bounds');
 check(chartCoordinates([{time: 1, value: 100}, {time: 2, value: 100}], 300, 135).every(point => Number.isFinite(point.y)), 'flat market has finite coordinates');
 check(chartCoordinates(history.points, 0, 0).length === 0, 'unallocated chart is empty');
+const inset = chartCoordinates(history.points, 300, 135, 8, 4);
+check(inset[0].x === 4 && inset.at(-1).x === 296, 'horizontal inset is independent of vertical padding');
+const flat = chartCoordinates([{time: 1, value: 100}, {time: 2, value: 110}], 300, 135);
+const bounds = chartBounds(135);
+check(Math.abs(flat[0].y - bounds.low) < 1e-9 && Math.abs(flat[1].y - bounds.high) < 1e-9, 'grid lines sit on the plotted high and low');
+check(changeLabel(1.234) === '▲ 1.23%' && changeLabel(-0.25) === '▼ 0.25%' && changeLabel(-0.001) === '• 0.00%', 'change label direction and rounding');
+check(rangePosition(75, 50, 100) === 0.5 && rangePosition(200, 50, 100) === 1 && rangePosition(1, 50, 100) === 0, 'range position is clamped');
+check(rangePosition(50, 50, 50) === 0.5, 'flat range is centred');
+check(timeLabel(1000, '1h', false, 'en-GB').length <= 5, 'short axis label');
+check(timeLabel(1000, '7d', true, 'en-GB').length > timeLabel(1000, '7d', false, 'en-GB').length, 'detailed label adds the time');
+check(nearestPoint(history.points, 0).time === 1000 && nearestPoint(history.points, 1).time === 1120 && nearestPoint(history.points, 0.45).time === 1060, 'pointer snaps to the nearest candle');
+check(nearestPoint([], 0.5) === null, 'no candle under the pointer without data');
+check(feeLabel(0.1) === '0.1' && feeLabel(1) === '1' && feeLabel(12.34) === '12.3' && feeLabel(1234.5) === '1,235', 'fee rates keep useful precision');
 check(stale({updated: 1000}, 1151), 'old data is stale after suspend');
 check(stale({updated: 1000, error: 'offline'}, 1010), 'failed refresh marks previous data stale');
 check(!stale({updated: 1000}, 1010), 'fresh data is not stale');
