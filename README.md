@@ -131,8 +131,8 @@ Missing data shows as unavailable. A failed history or network request does not
 prevent the current-price feed from working.
 
 Choose **Use simple indicator** to disable the popover and immediately reveal the
-fallback. The action is available only while the fallback app is running. Restore
-the popover with the Extensions app or:
+fallback. The action is available only while the fallback app is running. Switch
+back with **Use full popover** in the simple indicator's menu, the Extensions app, or:
 
 ```bash
 gnome-extensions enable btc-usd-tracker@saschb2b.github.io

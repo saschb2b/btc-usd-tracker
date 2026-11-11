@@ -13,6 +13,7 @@ from pathlib import Path
 REFRESH_SECONDS = 60
 NATIVE_BUS_NAME = "io.github.saschb2b.BtcUsdTracker.Popover"
 FALLBACK_BUS_NAME = "io.github.saschb2b.BtcUsdTracker.Fallback"
+EXTENSION_UUID = "btc-usd-tracker@saschb2b.github.io"
 FEEDS = (
     ("Coinbase", "https://api.coinbase.com/v2/prices/BTC-USD/spot"),
     ("Kraken", "https://api.kraken.com/0/public/Ticker?pair=XBTUSD"),
@@ -61,6 +62,12 @@ def panel_label(price, stale=False):
     return f"${price:,.0f}" + (" *" if stale else "")
 
 
+def popover_path(app_dir=None):
+    """Where the installer puts the native popover, next to this app's directory."""
+    app_dir = Path(app_dir) if app_dir else Path(__file__).resolve().parent
+    return app_dir.parent / "gnome-shell/extensions" / EXTENSION_UUID
+
+
 def run():
     import gi
 
@@ -82,6 +89,7 @@ def run():
             self.busy = False
             self.closed = False
             self.native_present = False
+            self.popover_row = None
             self.indicator = AyatanaAppIndicator3.Indicator.new(
                 "btc-usd-tracker",
                 str(Path(__file__).with_name("bitcoin-symbolic.svg")),
@@ -98,6 +106,11 @@ def run():
             self.refresh_row = Gtk.MenuItem(label="Refresh now")
             self.refresh_row.connect("activate", lambda _: self.refresh())
             self.menu.append(self.refresh_row)
+            if (popover_path() / "metadata.json").is_file():
+                # Counterpart of the popover's "Use simple indicator" action.
+                self.popover_row = Gtk.MenuItem(label="Use full popover")
+                self.popover_row.connect("activate", lambda _: self.enable_popover())
+                self.menu.append(self.popover_row)
             quit_row = Gtk.MenuItem(label="Quit until next login")
             quit_row.connect("activate", lambda _: self.quit())
             self.menu.append(quit_row)
@@ -123,6 +136,8 @@ def run():
             if not present:
                 self.indicator.set_label(panel_label(self.price, stale=self.price is not None), "$000,000 *")
                 self.status_row.set_label("Fetching a fresh price…")
+                if self.popover_row:
+                    self.popover_row.set_sensitive(True)
             status = (AyatanaAppIndicator3.IndicatorStatus.PASSIVE if present
                       else AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
             self.indicator.set_status(status)
@@ -131,6 +146,44 @@ def run():
                          "hidden" if present else "visible")
             if not present:
                 self.refresh()
+
+        def enable_popover(self):
+            # Once enabled, the popover owns NATIVE_BUS_NAME and this indicator hides.
+            self.popover_row.set_sensitive(False)
+            self.status_row.set_label("Switching to the full popover…")
+            Gio.DBusProxy.new_for_bus(
+                Gio.BusType.SESSION, Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES, None,
+                "org.gnome.Shell.Extensions", "/org/gnome/Shell/Extensions",
+                "org.gnome.Shell.Extensions", None, self.popover_proxy_ready,
+            )
+
+        def popover_proxy_ready(self, _source, result):
+            try:
+                proxy = Gio.DBusProxy.new_for_bus_finish(result)
+            except GLib.Error as exc:
+                self.popover_enabled(None, exc.message)
+                return
+            proxy.call(
+                "EnableExtension", GLib.Variant("(s)", (EXTENSION_UUID,)),
+                Gio.DBusCallFlags.NONE, 5000, None, self.popover_call_done,
+            )
+
+        def popover_call_done(self, proxy, result):
+            try:
+                self.popover_enabled(proxy.call_finish(result).unpack()[0], None)
+            except GLib.Error as exc:
+                self.popover_enabled(None, exc.message)
+
+        def popover_enabled(self, enabled, error):
+            if self.closed or self.native_present:
+                return
+            self.popover_row.set_sensitive(True)
+            if enabled:
+                self.status_row.set_label("Full popover enabled — starting…")
+                return
+            if error:
+                logging.warning("Could not enable the popover: %s", error)
+            self.status_row.set_label("Popover not loaded — log out and back in, then retry")
 
         def info(self, text):
             item = Gtk.MenuItem(label=text)

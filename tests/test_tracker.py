@@ -3,7 +3,9 @@ import unittest
 from decimal import Decimal
 from unittest.mock import patch
 
-from tracker import fetch_price, panel_label, parse_price
+from pathlib import Path
+
+from tracker import EXTENSION_UUID, fetch_price, panel_label, parse_price, popover_path
 
 
 class TrackerTests(unittest.TestCase):
@@ -38,6 +40,12 @@ class TrackerTests(unittest.TestCase):
         self.assertEqual(panel_label(Decimal("76920.07")), "$76,920")
         self.assertEqual(panel_label(Decimal("76920.07"), stale=True), "$76,920 *")
         self.assertEqual(panel_label(None, stale=True), "BTC offline")
+
+    def test_popover_path_matches_installer_layout(self):
+        self.assertEqual(
+            popover_path("/data/btc-usd-tracker"),
+            Path("/data/gnome-shell/extensions") / EXTENSION_UUID,
+        )
 
 
 if __name__ == "__main__":

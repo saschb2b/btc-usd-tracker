@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Use full popover** in the simple indicator's menu switches back to the native popover.
+
 ## 1.1.0 — 2026-09-15
 
 - Native GNOME 50 popover with separate Market and Network tabs on Wayland.
